@@ -4,8 +4,9 @@ plugins {
     id "kotlin-kapt"
     id "kotlin-parcelize"
     id "checkstyle"
-    id "org.sonarqube" version "3.3"
 }
+
+// id "org.sonarqube" version "3.3" // Disabled to avoid Maven Central issues
 
 android {
     compileSdk 33
@@ -110,6 +111,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
         compose true
     }
 
@@ -197,13 +199,13 @@ task formatKtlint(type: JavaExec) {
 afterEvaluate {
 }
 
-sonarqube {
-    properties {
-        property "sonar.projectKey", "TeamNewPipe_NewPipe"
-        property "sonar.organization", "teamnewpipe"
-        property "sonar.host.url", "https://sonarcloud.io"
-    }
-}
+// sonarqube {
+//     properties {
+//         property "sonar.projectKey", "TeamNewPipe_NewPipe"
+//         property "sonar.organization", "teamnewpipe"
+//         property "sonar.host.url", "https://sonarcloud.io"
+//     }
+// }
 
 dependencies {
 /** Desugaring **/

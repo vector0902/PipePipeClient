@@ -3,8 +3,9 @@
 buildscript {
     ext.kotlin_version = '1.7.20'
     repositories {
-        google()
-        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.3.0'
@@ -17,8 +18,9 @@ buildscript {
 
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
         maven { url "https://jitpack.io" }
         maven { url "https://clojars.org/repo" }
     }
