@@ -57,6 +57,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+                android:name=".player.subtitle.SubtitleNavigationActivity"
+                android:theme="@style/DarkTheme"
+                android:exported="false"
+                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
+
         <receiver android:name="androidx.media.session.MediaButtonReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />

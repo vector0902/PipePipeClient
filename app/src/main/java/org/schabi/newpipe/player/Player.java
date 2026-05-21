@@ -28,6 +28,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+
+
+import org.schabi.newpipe.player.subtitle.SubtitleNavigationActivity;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Service;
@@ -4268,12 +4271,19 @@ public final class Player implements
             return;
         }
 
-        // TODO: Launch SubtitleNavigationActivity or Dialog
-        // For now, show a toast as placeholder
-        Toast.makeText(context, "Subtitle navigation coming soon!", Toast.LENGTH_SHORT).show();
+        // Get the first subtitle content (can be enhanced to detect currently selected)
+        String selectedContent = subtitles.get(0).getContent();
+        String language = subtitles.get(0).getLanguageTag();
+
+        // Launch SubtitleNavigationActivity with subtitle content directly
+        Intent intent = new Intent(context, SubtitleNavigationActivity.class);
+        intent.putExtra(SubtitleNavigationActivity.EXTRA_SUBTITLE_CONTENT, selectedContent);
+        intent.putExtra(SubtitleNavigationActivity.EXTRA_SUBTITLE_LANGUAGE, language);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
 
         if (DEBUG) {
-            Log.d(TAG, "showSubtitleNavigationDialog: Found " + subtitles.size() + " subtitle tracks");
+            Log.d(TAG, "showSubtitleNavigationDialog: Launched with subtitle: " + language);
         }
     }
 
