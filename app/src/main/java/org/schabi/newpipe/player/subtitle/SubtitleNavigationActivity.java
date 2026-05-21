@@ -6,7 +6,6 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -31,7 +30,6 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private SubtitleAdapter adapter;
-    private ProgressBar progressBar;
     private ToggleButton syncToggle;
     private boolean isAutoSync = false;
 
@@ -56,7 +54,6 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
     private void initViews() {
         recyclerView = findViewById(R.id.subtitle_recycler_view);
-        progressBar = findViewById(R.id.progress_bar);
         syncToggle = findViewById(R.id.btn_sync_toggle);
 
         // Setup RecyclerView
@@ -90,8 +87,6 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     }
 
     private void loadSubtitles() {
-        progressBar.setVisibility(View.VISIBLE);
-
         String subtitleContent = getIntent().getStringExtra(EXTRA_SUBTITLE_CONTENT);
         String language = getIntent().getStringExtra(EXTRA_SUBTITLE_LANGUAGE);
         currentPosition = getIntent().getLongExtra(EXTRA_CURRENT_POSITION, 0);
@@ -105,8 +100,6 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         // Parse subtitles
         subtitleItems = SubtitleParser.parse(subtitleContent);
         adapter.setItems(subtitleItems);
-
-        progressBar.setVisibility(View.GONE);
 
         if (subtitleItems.isEmpty()) {
             Toast.makeText(this, "Failed to parse subtitles", Toast.LENGTH_SHORT).show();
