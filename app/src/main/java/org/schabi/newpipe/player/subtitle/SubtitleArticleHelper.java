@@ -40,8 +40,8 @@ public class SubtitleArticleHelper {
     }
 
     /**
-     * Build SpannableString with all subtitles joined together.
-     * Each paragraph is clickable and can be highlighted.
+     * Build SpannableString with all subtitles joined into flowing paragraphs.
+     * Sentences are connected with spaces, new paragraphs start after longer pauses.
      */
     public SpannableString buildArticleText() {
         if (subtitleItems == null || subtitleItems.isEmpty()) {
@@ -49,6 +49,10 @@ public class SubtitleArticleHelper {
         }
 
         StringBuilder builder = new StringBuilder();
+        
+        // Threshold for paragraph break (in milliseconds)
+        // If gap between subtitles > 3 seconds, start a new paragraph
+        final long PARAGRAPH_BREAK_THRESHOLD = 3000;
         
         // Build text content first to calculate positions
         for (int i = 0; i < subtitleItems.size(); i++) {
@@ -58,20 +62,30 @@ public class SubtitleArticleHelper {
             spanStarts[i] = builder.length();
             
             // Add subtitle text
-            builder.append(item.text);
+            String text = item.text != null ? item.text.trim() : "";
+            builder.append(text);
             
             // Record end position (exclusive)
             spanEnds[i] = builder.length();
             
-            // Add separator between subtitles (double newline for paragraph break)
+            // Determine separator based on time gap
             if (i < subtitleItems.size() - 1) {
-                builder.append("\n\n");
+                SubtitleParser.SubtitleItem nextItem = subtitleItems.get(i + 1);
+                long timeGap = nextItem.startTimeMs - item.endTimeMs;
+                
+                if (timeGap > PARAGRAPH_BREAK_THRESHOLD) {
+                    // Long pause -> new paragraph
+                    builder.append("\n\n");
+                } else {
+                    // Short pause -> continue in same paragraph with space
+                    builder.append(" ");
+                }
             }
         }
 
         SpannableString spannable = new SpannableString(builder.toString());
 
-        // Apply ClickableSpan to each subtitle paragraph
+        // Apply ClickableSpan to each subtitle segment
         for (int i = 0; i < subtitleItems.size(); i++) {
             final int index = i;
             final SubtitleParser.SubtitleItem item = subtitleItems.get(i);
