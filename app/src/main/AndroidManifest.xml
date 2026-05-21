@@ -60,8 +60,7 @@
         <activity
                 android:name=".player.subtitle.SubtitleNavigationActivity"
                 android:theme="@style/TransparentTheme"
-                android:exported="false"
-                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
+                android:exported="false" />
 
         <receiver android:name="androidx.media.session.MediaButtonReceiver" android:exported="true">
             <intent-filter>
