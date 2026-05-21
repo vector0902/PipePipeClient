@@ -190,6 +190,13 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     }
 
     private void switchToArticleView() {
+        // Safety check: ensure Article View components are available
+        if (articleTextView == null || articleScrollView == null) {
+            Log.w(TAG, "switchToArticleView: Article View components not available, falling back to List View");
+            showListView();
+            return;
+        }
+        
         showArticleView();
         
         if (articleHelper == null && subtitleItems != null && !subtitleItems.isEmpty()) {
@@ -210,7 +217,7 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
             articleTextView.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
         }
         
-        if (articleSpannable != null) {
+        if (articleSpannable != null && articleTextView != null) {
             int activeIdx = SubtitleParser.findSubtitleIndex(subtitleItems, currentPosition);
             articleSpannable = articleHelper.updateHighlight(articleSpannable, activeIdx);
             articleTextView.setText(articleSpannable);
@@ -308,7 +315,7 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
                 }
             } else if (currentViewMode == VIEW_MODE_ARTICLE) {
                 // Update Article View highlight
-                if (articleHelper != null && articleSpannable != null) {
+                if (articleHelper != null && articleSpannable != null && articleTextView != null) {
                     articleSpannable = articleHelper.updateHighlight(articleSpannable, index);
                     articleTextView.setText(articleSpannable);
                     
