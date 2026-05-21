@@ -310,6 +310,7 @@ public final class Player implements
     private static final int POPUP_MENU_ID_PLAYBACK_SPEED = 79;
     private static final int POPUP_MENU_ID_CAPTION = 89;
     private static final int POPUP_MENU_ID_AUDIO_TRACK = 99;
+    private static final int POPUP_MENU_ID_CAPTION_LIST = 109;
 
     private boolean isSomePopupMenuVisible = false;
     private PopupMenu qualityPopupMenu;
@@ -4056,6 +4057,20 @@ public final class Player implements
             });
         }
 
+        // Add separator and "View Subtitle List" option
+        if (!availableLanguages.isEmpty()) {
+            captionPopupMenu.getMenu().add(POPUP_MENU_ID_CAPTION_LIST, Menu.NONE, Menu.NONE, "");
+            final MenuItem viewListItem = captionPopupMenu.getMenu().add(
+                    POPUP_MENU_ID_CAPTION_LIST,
+                    1,
+                    Menu.NONE,
+                    R.string.caption_view_list);
+            viewListItem.setOnMenuItemClickListener(menuItem -> {
+                showSubtitleNavigationDialog();
+                return true;
+            });
+        }
+
         // apply caption language from previous user preference
         final int textRendererIndex = getCaptionRendererIndex();
         if (textRendererIndex == RENDERER_UNAVAILABLE) {
@@ -4230,6 +4245,36 @@ public final class Player implements
         }
         binding.captionTextView.setVisibility(
                 availableLanguages.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    /**
+     * Show subtitle navigation dialog with full subtitle list.
+     * This allows users to browse all subtitles and click to seek to specific positions.
+     */
+    private void showSubtitleNavigationDialog() {
+        if (DEBUG) {
+            Log.d(TAG, "showSubtitleNavigationDialog() called");
+        }
+
+        final Optional<StreamInfo> optStreamInfo = getCurrentStreamInfo();
+        if (!optStreamInfo.isPresent()) {
+            return;
+        }
+
+        final StreamInfo streamInfo = optStreamInfo.get();
+        final List<SubtitlesStream> subtitles = streamInfo.getSubtitles();
+
+        if (subtitles == null || subtitles.isEmpty()) {
+            return;
+        }
+
+        // TODO: Launch SubtitleNavigationActivity or Dialog
+        // For now, show a toast as placeholder
+        Toast.makeText(context, "Subtitle navigation coming soon!", Toast.LENGTH_SHORT).show();
+
+        if (DEBUG) {
+            Log.d(TAG, "showSubtitleNavigationDialog: Found " + subtitles.size() + " subtitle tracks");
+        }
     }
 
     private void onAudioTracksChanged() {
