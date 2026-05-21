@@ -85,6 +85,7 @@ android {
         // debug build. This seems to be a Gradle bug, therefore
         // TODO: update Gradle version
         release {
+            signingConfig signingConfigs.debug  // Use same keystore as debug
             if (System.properties.containsKey('packageSuffix')) {
                 applicationIdSuffix System.getProperty('packageSuffix')
                 resValue "string", "app_name", "PipePipe " + System.getProperty('packageSuffix')
