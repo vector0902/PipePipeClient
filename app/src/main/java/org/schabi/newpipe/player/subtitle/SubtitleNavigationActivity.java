@@ -1,5 +1,9 @@
 package org.schabi.newpipe.player.subtitle;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.schabi.newpipe.R;
+import org.schabi.newpipe.fragments.detail.VideoDetailFragment;
 
 import java.util.List;
 
@@ -35,10 +40,13 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
     private List<SubtitleParser.SubtitleItem> subtitleItems;
     private Handler handler;
-    private Runnable positionUpdater;
+    private Runnable positionRequester;
 
-    // Current playback position from intent
+    // Current playback position from player
     private long currentPosition = 0;
+
+    // Broadcast receiver for player position updates
+    private BroadcastReceiver positionReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +56,9 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         handler = new Handler(Looper.getMainLooper());
 
         initViews();
+        setupPositionReceiver();
         loadSubtitles();
-        startPositionUpdater();
+        startPositionUpdates();
     }
 
     private void initViews() {
@@ -80,10 +89,23 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         syncToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
             isAutoSync = isChecked;
             if (isChecked) {
-                // Re-sync to current position
-                updateCurrentPosition();
+                // Request position immediately when enabled
+                requestPlayerPosition();
             }
         });
+    }
+
+    private void setupPositionReceiver() {
+        positionReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent != null && VideoDetailFragment.ACTION_PLAYER_POSITION_RESPONSE.equals(intent.getAction())) {
+                    long position = intent.getLongExtra(VideoDetailFragment.EXTRA_PLAYER_POSITION, 0);
+                    currentPosition = position;
+                    updateSubtitleHighlight();
+                }
+            }
+        };
     }
 
     private void loadSubtitles() {
@@ -109,31 +131,36 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
         Log.d(TAG, "Loaded " + subtitleItems.size() + " subtitle items for language: " + language);
 
-        // Scroll to current position
-        updateCurrentPosition();
+        // Highlight current position
+        updateSubtitleHighlight();
     }
 
-    private void startPositionUpdater() {
-        positionUpdater = new Runnable() {
+    private void startPositionUpdates() {
+        // Request position every 500ms
+        positionRequester = new Runnable() {
             @Override
             public void run() {
-                if (isAutoSync && !subtitleItems.isEmpty()) {
-                    // In a real implementation, we would get the current position from the player
-                    // For now, we rely on the position passed via intent or manual updates
-                    updateCurrentPosition();
-                }
-                handler.postDelayed(this, 1000); // Update every second
+                requestPlayerPosition();
+                handler.postDelayed(this, 500); // Update every 500ms
             }
         };
-        handler.post(positionUpdater);
+        handler.post(positionRequester);
     }
 
-    private void updateCurrentPosition() {
-        if (!subtitleItems.isEmpty()) {
+    private void requestPlayerPosition() {
+        Intent intent = new Intent(VideoDetailFragment.ACTION_REQUEST_PLAYER_POSITION);
+        sendBroadcast(intent);
+    }
+
+    private void updateSubtitleHighlight() {
+        if (subtitleItems != null && !subtitleItems.isEmpty()) {
             int index = SubtitleParser.findSubtitleIndex(subtitleItems, currentPosition);
             if (index >= 0) {
                 adapter.setActiveIndex(index);
-                recyclerView.scrollToPosition(index);
+                // Only scroll if auto sync is enabled
+                if (isAutoSync) {
+                    recyclerView.scrollToPosition(index);
+                }
             }
         }
     }
@@ -143,7 +170,7 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
         // Send broadcast to seek
         android.content.Intent intent = new android.content.Intent(
-            org.schabi.newpipe.fragments.detail.VideoDetailFragment.ACTION_SEEK_TO);
+            VideoDetailFragment.ACTION_SEEK_TO);
         intent.putExtra("Timestamp", (int)(item.startTimeMs / 1000)); // Convert ms to seconds
         sendBroadcast(intent);
 
@@ -162,24 +189,36 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (handler != null && positionUpdater != null) {
-            handler.post(positionUpdater);
+        // Register broadcast receiver
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(VideoDetailFragment.ACTION_PLAYER_POSITION_RESPONSE);
+        registerReceiver(positionReceiver, filter);
+
+        // Start position updates
+        if (handler != null && positionRequester != null) {
+            handler.post(positionRequester);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (handler != null && positionUpdater != null) {
-            handler.removeCallbacks(positionUpdater);
+        // Unregister broadcast receiver
+        if (positionReceiver != null) {
+            unregisterReceiver(positionReceiver);
+        }
+
+        // Stop position updates
+        if (handler != null && positionRequester != null) {
+            handler.removeCallbacks(positionRequester);
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (handler != null && positionUpdater != null) {
-            handler.removeCallbacks(positionUpdater);
+        if (handler != null && positionRequester != null) {
+            handler.removeCallbacks(positionRequester);
         }
     }
 }

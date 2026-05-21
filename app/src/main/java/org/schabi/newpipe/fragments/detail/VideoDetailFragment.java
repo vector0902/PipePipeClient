@@ -148,8 +148,13 @@ public final class VideoDetailFragment
             App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_VIDEO_ERROR";
     public static final String ACTION_SEEK_TO =
             App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_SEEK_TO";
-    public static final String ACTION_ENTER_FULLSCREEN
-            = App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_ENTER_FULLSCREEN";
+    public static final String ACTION_ENTER_FULLSCREEN =
+            App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_ENTER_FULLSCREEN";
+    public static final String ACTION_REQUEST_PLAYER_POSITION =
+            App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_REQUEST_PLAYER_POSITION";
+    public static final String ACTION_PLAYER_POSITION_RESPONSE =
+            App.PACKAGE_NAME + ".VideoDetailFragment.ACTION_PLAYER_POSITION_RESPONSE";
+    public static final String EXTRA_PLAYER_POSITION = "player_position";
 
     private static final String COMMENTS_TAB_TAG = "COMMENTS";
     private static final String RELATED_TAB_TAG = "NEXT VIDEO";

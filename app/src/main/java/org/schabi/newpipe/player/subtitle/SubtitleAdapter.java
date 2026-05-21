@@ -39,6 +39,10 @@ public class SubtitleAdapter extends RecyclerView.Adapter<SubtitleAdapter.Subtit
     }
 
     public void setActiveIndex(int index) {
+        // Don't update if index hasn't changed
+        if (index == activeIndex) {
+            return;
+        }
         int oldIndex = activeIndex;
         activeIndex = index;
         if (oldIndex >= 0 && oldIndex < items.size()) {

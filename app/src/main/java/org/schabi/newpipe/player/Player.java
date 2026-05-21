@@ -1287,6 +1287,7 @@ public final class Player implements
         intentFilter.addAction(VideoDetailFragment.ACTION_SEEK_TO);
         intentFilter.addAction(VideoDetailFragment.ACTION_VIDEO_FRAGMENT_RESUMED);
         intentFilter.addAction(VideoDetailFragment.ACTION_VIDEO_FRAGMENT_STOPPED);
+        intentFilter.addAction(VideoDetailFragment.ACTION_REQUEST_PLAYER_POSITION);
 
         intentFilter.addAction(Intent.ACTION_CONFIGURATION_CHANGED);
         intentFilter.addAction(Intent.ACTION_SCREEN_ON);
@@ -1345,6 +1346,14 @@ public final class Player implements
                 seekTo(intent.getIntExtra("Timestamp", 0) * 1000L);
                 if(wasPlaying){
                     simpleExoPlayer.play();
+                }
+                break;
+            case VideoDetailFragment.ACTION_REQUEST_PLAYER_POSITION:
+                // Send current position back
+                if (simpleExoPlayer != null) {
+                    Intent response = new Intent(VideoDetailFragment.ACTION_PLAYER_POSITION_RESPONSE);
+                    response.putExtra(VideoDetailFragment.EXTRA_PLAYER_POSITION, simpleExoPlayer.getCurrentPosition());
+                    context.sendBroadcast(response);
                 }
                 break;
             case VideoDetailFragment.ACTION_VIDEO_FRAGMENT_RESUMED:
