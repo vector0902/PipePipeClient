@@ -149,8 +149,9 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         Log.d(TAG, "Seeking to: " + item.startTimeMs + "ms - " + item.text);
 
         // Send broadcast to seek
-        android.content.Intent intent = new android.content.Intent("org.schabi.newpipe.SEEK_TO");
-        intent.putExtra("position", item.startTimeMs);
+        android.content.Intent intent = new android.content.Intent(
+            org.schabi.newpipe.fragments.detail.VideoDetailFragment.ACTION_SEEK_TO);
+        intent.putExtra("Timestamp", (int)(item.startTimeMs / 1000)); // Convert ms to seconds
         sendBroadcast(intent);
 
         Toast.makeText(this, "Jumped to " + formatTime(item.startTimeMs),
