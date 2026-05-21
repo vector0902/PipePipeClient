@@ -172,4 +172,13 @@
         <item name="android:background">@color/black_bottom_sheet_color</item>
     </style>
 
+    <!-- Transparent Theme for Subtitle Navigation -->
+    <style name="TransparentTheme" parent="DarkTheme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">false</item>
+    </style>
+
 </resources>

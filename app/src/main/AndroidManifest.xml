@@ -59,7 +59,7 @@
 
         <activity
                 android:name=".player.subtitle.SubtitleNavigationActivity"
-                android:theme="@style/DarkTheme"
+                android:theme="@style/TransparentTheme"
                 android:exported="false"
                 android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
 

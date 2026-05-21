@@ -33,7 +33,7 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     private SubtitleAdapter adapter;
     private ProgressBar progressBar;
     private ToggleButton syncToggle;
-    private boolean isAutoSync = true;
+    private boolean isAutoSync = false;
 
     private List<SubtitleParser.SubtitleItem> subtitleItems;
     private Handler handler;

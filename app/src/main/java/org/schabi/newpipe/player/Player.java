@@ -4017,6 +4017,7 @@ public final class Player implements
             return;
         }
         captionPopupMenu.getMenu().removeGroup(POPUP_MENU_ID_CAPTION);
+        captionPopupMenu.getMenu().removeGroup(POPUP_MENU_ID_CAPTION_LIST);
         captionPopupMenu.setOnDismissListener(this);
 
         // Add option for turning off caption
@@ -4271,9 +4272,36 @@ public final class Player implements
             return;
         }
 
-        // Get the first subtitle content (can be enhanced to detect currently selected)
-        String selectedContent = subtitles.get(0).getContent();
-        String language = subtitles.get(0).getLanguageTag();
+        // Find currently selected subtitle based on trackSelector parameters
+        String selectedLanguage = null;
+        final int textRendererIndex = getCaptionRendererIndex();
+        if (textRendererIndex != RENDERER_UNAVAILABLE) {
+            // Get preferred text languages from trackSelector parameters
+            final com.google.common.collect.ImmutableList<String> preferredLanguages = trackSelector.getParameters()
+                    .preferredTextLanguages;
+            if (preferredLanguages != null && !preferredLanguages.isEmpty()) {
+                selectedLanguage = preferredLanguages.get(0);
+            }
+        }
+
+        // Find matching subtitle stream
+        SubtitlesStream selectedSubtitle = null;
+        if (selectedLanguage != null) {
+            for (SubtitlesStream subtitle : subtitles) {
+                if (subtitle.getLanguageTag().equals(selectedLanguage)) {
+                    selectedSubtitle = subtitle;
+                    break;
+                }
+            }
+        }
+
+        // Fallback to first subtitle if no selected one found
+        if (selectedSubtitle == null) {
+            selectedSubtitle = subtitles.get(0);
+        }
+
+        String selectedContent = selectedSubtitle.getContent();
+        String language = selectedSubtitle.getLanguageTag();
 
         // Launch SubtitleNavigationActivity with subtitle content directly
         Intent intent = new Intent(context, SubtitleNavigationActivity.class);
