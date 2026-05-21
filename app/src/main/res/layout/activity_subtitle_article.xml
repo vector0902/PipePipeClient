@@ -13,7 +13,7 @@
         android:layout_weight="1"
         android:background="@android:color/transparent" />
 
-    <!-- Subtitle Navigation Panel (2/3 of screen from bottom) -->
+    <!-- Article View Panel (2/3 of screen from bottom) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -29,7 +29,7 @@
             android:orientation="horizontal"
             android:paddingHorizontal="12dp">
 
-            <!-- View toggle button (List / Article) -->
+            <!-- View toggle button -->
             <ToggleButton
                 android:id="@+id/btn_view_toggle"
                 android:layout_width="wrap_content"
@@ -44,6 +44,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
+            <!-- Close button -->
             <ImageButton
                 android:id="@+id/btn_close"
                 android:layout_width="40dp"
@@ -54,17 +55,7 @@
                 app:tint="#FFFFFF" />
         </LinearLayout>
 
-        <!-- Subtitle List (List View) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/subtitle_recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:padding="8dp"
-            android:scrollbars="vertical" />
-
-        <!-- Article Content (Article View - hidden by default) -->
+        <!-- Article Content (ScrollView with clickable text) -->
         <ScrollView
             android:id="@+id/article_scroll_view"
             android:layout_width="match_parent"
@@ -72,8 +63,7 @@
             android:layout_weight="1"
             android:clipToPadding="false"
             android:padding="12dp"
-            android:scrollbars="vertical"
-            android:visibility="gone">
+            android:scrollbars="vertical">
 
             <TextView
                 android:id="@+id/article_text_view"
@@ -111,5 +101,4 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
-
 </LinearLayout>

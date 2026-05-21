@@ -7,9 +7,14 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Layout;
+import android.text.SpannableString;
 import android.util.Log;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -24,7 +29,9 @@ import java.util.List;
 
 /**
  * Activity for displaying and navigating subtitle list.
- * Allows users to browse all subtitles and click to seek to specific positions.
+ * Supports two view modes:
+ * - List View: Traditional RecyclerView with separate items
+ * - Article View: Continuous text with clickable paragraphs
  */
 public class SubtitleNavigationActivity extends AppCompatActivity {
     private static final String TAG = "SubtitleNavigation";
@@ -32,11 +39,27 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     public static final String EXTRA_SUBTITLE_CONTENT = "subtitle_content";
     public static final String EXTRA_SUBTITLE_LANGUAGE = "subtitle_language";
     public static final String EXTRA_CURRENT_POSITION = "current_position";
+    public static final String EXTRA_INITIAL_VIEW_MODE = "initial_view_mode";
 
+    // View modes (public for external access)
+    public static final int VIEW_MODE_LIST = 0;
+    public static final int VIEW_MODE_ARTICLE = 1;
+
+    // List View components
     private RecyclerView recyclerView;
     private SubtitleAdapter adapter;
+
+    // Article View components
+    private ScrollView articleScrollView;
+    private TextView articleTextView;
+    private SubtitleArticleHelper articleHelper;
+    private SpannableString articleSpannable;
+
+    // Common UI components
     private ToggleButton syncToggle;
+    private ToggleButton viewToggle;
     private boolean isAutoSync = false;
+    private int currentViewMode = VIEW_MODE_LIST;
 
     private List<SubtitleParser.SubtitleItem> subtitleItems;
     private Handler handler;
@@ -55,42 +78,161 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
+        // Read initial view mode from Intent extras
+        int initialViewMode = getIntent().getIntExtra(EXTRA_INITIAL_VIEW_MODE, VIEW_MODE_LIST);
+        if (initialViewMode == VIEW_MODE_ARTICLE) {
+            currentViewMode = VIEW_MODE_ARTICLE;
+        }
+
         initViews();
         setupPositionReceiver();
         loadSubtitles();
+
+        // Apply initial view mode after subtitles are loaded
+        if (initialViewMode == VIEW_MODE_ARTICLE) {
+            switchToArticleView();
+            if (viewToggle != null) {
+                viewToggle.setChecked(true);
+            }
+        }
+
         startPositionUpdates();
     }
 
     private void initViews() {
+        // List View components
         recyclerView = findViewById(R.id.subtitle_recycler_view);
+        
+        // Article View components (hidden initially)
+        articleScrollView = findViewById(R.id.article_scroll_view);
+        articleTextView = findViewById(R.id.article_text_view);
+        
+        // Common UI components
         syncToggle = findViewById(R.id.btn_sync_toggle);
+        viewToggle = findViewById(R.id.btn_view_toggle);
 
-        // Setup RecyclerView
+        // Setup RecyclerView (List View)
         adapter = new SubtitleAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        // Click listener for subtitles
-        adapter.setOnSubtitleClickListener((item, position) -> {
-            if (isAutoSync) {
-                // Disable auto sync when user manually clicks
-                isAutoSync = false;
-                syncToggle.setChecked(false);
+        // Click listener for subtitles in List View
+        adapter.setOnSubtitleClickListener(new SubtitleAdapter.OnSubtitleClickListener() {
+            @Override
+            public void onSubtitleClick(SubtitleParser.SubtitleItem item, int position) {
+                if (isAutoSync) {
+                    isAutoSync = false;
+                    syncToggle.setChecked(false);
+                }
+                seekToSubtitle(item);
             }
-            seekToSubtitle(item);
         });
 
         // Close button
         ImageButton closeBtn = findViewById(R.id.btn_close);
-        closeBtn.setOnClickListener(v -> finish());
+        closeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         // Sync toggle
         syncToggle.setChecked(isAutoSync);
-        syncToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            isAutoSync = isChecked;
-            if (isChecked) {
-                // Request position immediately when enabled
-                requestPlayerPosition();
+        syncToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                isAutoSync = isChecked;
+                if (isChecked) {
+                    requestPlayerPosition();
+                }
+            }
+        });
+
+        // View mode toggle (List <-> Article)
+        if (viewToggle != null) {
+            viewToggle.setChecked(false); // Default to List View (textOff = "Article")
+            viewToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked) {
+                        switchToArticleView();
+                    } else {
+                        switchToListView();
+                    }
+                }
+            });
+        }
+
+        // Initially hide Article View components
+        showListView();
+    }
+
+    private void showListView() {
+        currentViewMode = VIEW_MODE_LIST;
+        recyclerView.setVisibility(View.VISIBLE);
+        if (articleScrollView != null) {
+            articleScrollView.setVisibility(View.GONE);
+        }
+    }
+
+    private void showArticleView() {
+        currentViewMode = VIEW_MODE_ARTICLE;
+        recyclerView.setVisibility(View.GONE);
+        if (articleScrollView != null) {
+            articleScrollView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void switchToListView() {
+        showListView();
+        updateSubtitleHighlight();
+    }
+
+    private void switchToArticleView() {
+        showArticleView();
+        
+        if (articleHelper == null && subtitleItems != null && !subtitleItems.isEmpty()) {
+            articleHelper = new SubtitleArticleHelper(subtitleItems);
+            articleHelper.setOnSubtitleClickListener(new SubtitleArticleHelper.OnSubtitleClickListener() {
+                @Override
+                public void onSubtitleClick(SubtitleParser.SubtitleItem item, int index) {
+                    if (isAutoSync) {
+                        isAutoSync = false;
+                        syncToggle.setChecked(false);
+                    }
+                    seekToSubtitle(item);
+                }
+            });
+            
+            articleSpannable = articleHelper.buildArticleText();
+            articleTextView.setText(articleSpannable);
+            articleTextView.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+        }
+        
+        if (articleSpannable != null) {
+            int activeIdx = SubtitleParser.findSubtitleIndex(subtitleItems, currentPosition);
+            articleSpannable = articleHelper.updateHighlight(articleSpannable, activeIdx);
+            articleTextView.setText(articleSpannable);
+            
+            // Scroll to active subtitle
+            scrollToActiveSubtitle(activeIdx);
+        }
+    }
+
+    private void scrollToActiveSubtitle(final int index) {
+        if (index < 0 || articleHelper == null || articleTextView == null) return;
+        
+        final int charOffset = articleHelper.getCharOffset(index);
+        articleTextView.post(new Runnable() {
+            @Override
+            public void run() {
+                Layout layout = articleTextView.getLayout();
+                if (layout != null) {
+                    int line = layout.getLineForOffset(charOffset);
+                    int y = layout.getLineTop(line);
+                    articleScrollView.smoothScrollTo(0, y);
+                }
             }
         });
     }
@@ -155,11 +297,24 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     private void updateSubtitleHighlight() {
         if (subtitleItems != null && !subtitleItems.isEmpty()) {
             int index = SubtitleParser.findSubtitleIndex(subtitleItems, currentPosition);
-            if (index >= 0) {
-                adapter.setActiveIndex(index);
-                // Only scroll if auto sync is enabled
-                if (isAutoSync) {
-                    recyclerView.scrollToPosition(index);
+            
+            if (currentViewMode == VIEW_MODE_LIST) {
+                // Update List View highlight
+                if (index >= 0) {
+                    adapter.setActiveIndex(index);
+                    if (isAutoSync) {
+                        recyclerView.scrollToPosition(index);
+                    }
+                }
+            } else if (currentViewMode == VIEW_MODE_ARTICLE) {
+                // Update Article View highlight
+                if (articleHelper != null && articleSpannable != null) {
+                    articleSpannable = articleHelper.updateHighlight(articleSpannable, index);
+                    articleTextView.setText(articleSpannable);
+                    
+                    if (isAutoSync) {
+                        scrollToActiveSubtitle(index);
+                    }
                 }
             }
         }
@@ -169,8 +324,7 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         Log.d(TAG, "Seeking to: " + item.startTimeMs + "ms - " + item.text);
 
         // Send broadcast to seek
-        android.content.Intent intent = new android.content.Intent(
-            VideoDetailFragment.ACTION_SEEK_TO);
+        Intent intent = new Intent(VideoDetailFragment.ACTION_SEEK_TO);
         intent.putExtra("Timestamp", (int)(item.startTimeMs / 1000)); // Convert ms to seconds
         sendBroadcast(intent);
 

@@ -460,6 +460,7 @@
 <!-- Players -->
 <string name="caption_none">No Captions</string>
 <string name="caption_view_list">View Subtitle List</string>
+<string name="caption_view_article">View as Article</string>
 <string name="resize_fit">Fit</string>
 <string name="resize_fill">Fill</string>
 <string name="resize_zoom">Zoom</string>

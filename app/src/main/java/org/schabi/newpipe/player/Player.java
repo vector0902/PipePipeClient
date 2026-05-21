@@ -4070,7 +4070,7 @@ public final class Player implements
             });
         }
 
-        // Add separator and "View Subtitle List" option
+        // Add separator and "View Subtitle List" / "View as Article" options
         if (!availableLanguages.isEmpty()) {
             captionPopupMenu.getMenu().add(POPUP_MENU_ID_CAPTION_LIST, Menu.NONE, Menu.NONE, "");
             final MenuItem viewListItem = captionPopupMenu.getMenu().add(
@@ -4080,6 +4080,16 @@ public final class Player implements
                     R.string.caption_view_list);
             viewListItem.setOnMenuItemClickListener(menuItem -> {
                 showSubtitleNavigationDialog();
+                return true;
+            });
+
+            final MenuItem viewArticleItem = captionPopupMenu.getMenu().add(
+                    POPUP_MENU_ID_CAPTION_LIST,
+                    2,
+                    Menu.NONE,
+                    R.string.caption_view_article);
+            viewArticleItem.setOnMenuItemClickListener(menuItem -> {
+                showSubtitleArticleDialog();
                 return true;
             });
         }
@@ -4321,6 +4331,71 @@ public final class Player implements
 
         if (DEBUG) {
             Log.d(TAG, "showSubtitleNavigationDialog: Launched with subtitle: " + language);
+        }
+    }
+
+    /**
+     * Show subtitle article view with all subtitles joined as continuous text.
+     * This provides a reading-friendly view for browsing subtitles without scrolling fatigue.
+     */
+    private void showSubtitleArticleDialog() {
+        if (DEBUG) {
+            Log.d(TAG, "showSubtitleArticleDialog() called");
+        }
+
+        final Optional<StreamInfo> optStreamInfo = getCurrentStreamInfo();
+        if (!optStreamInfo.isPresent()) {
+            return;
+        }
+
+        final StreamInfo streamInfo = optStreamInfo.get();
+        final List<SubtitlesStream> subtitles = streamInfo.getSubtitles();
+
+        if (subtitles == null || subtitles.isEmpty()) {
+            return;
+        }
+
+        // Find currently selected subtitle based on trackSelector parameters
+        String selectedLanguage = null;
+        final int textRendererIndex = getCaptionRendererIndex();
+        if (textRendererIndex != RENDERER_UNAVAILABLE) {
+            final com.google.common.collect.ImmutableList<String> preferredLanguages = trackSelector.getParameters()
+                    .preferredTextLanguages;
+            if (preferredLanguages != null && !preferredLanguages.isEmpty()) {
+                selectedLanguage = preferredLanguages.get(0);
+            }
+        }
+
+        // Find matching subtitle stream
+        SubtitlesStream selectedSubtitle = null;
+        if (selectedLanguage != null) {
+            for (SubtitlesStream subtitle : subtitles) {
+                if (subtitle.getLanguageTag().equals(selectedLanguage)) {
+                    selectedSubtitle = subtitle;
+                    break;
+                }
+            }
+        }
+
+        // Fallback to first subtitle if no selected one found
+        if (selectedSubtitle == null) {
+            selectedSubtitle = subtitles.get(0);
+        }
+
+        String selectedContent = selectedSubtitle.getContent();
+        String language = selectedSubtitle.getLanguageTag();
+
+        // Launch SubtitleNavigationActivity in Article View mode
+        Intent intent = new Intent(context, SubtitleNavigationActivity.class);
+        intent.putExtra(SubtitleNavigationActivity.EXTRA_SUBTITLE_CONTENT, selectedContent);
+        intent.putExtra(SubtitleNavigationActivity.EXTRA_SUBTITLE_LANGUAGE, language);
+        intent.putExtra(SubtitleNavigationActivity.EXTRA_INITIAL_VIEW_MODE,
+                SubtitleNavigationActivity.VIEW_MODE_ARTICLE);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+
+        if (DEBUG) {
+            Log.d(TAG, "showSubtitleArticleDialog: Launched Article View with subtitle: " + language);
         }
     }
 
