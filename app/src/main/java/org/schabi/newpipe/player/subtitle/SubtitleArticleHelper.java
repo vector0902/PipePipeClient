@@ -41,20 +41,49 @@ public class SubtitleArticleHelper {
 
     /**
      * Build SpannableString with all subtitles joined into flowing paragraphs.
-     * Sentences are connected with spaces, new paragraphs start after longer pauses.
+     * Uses dynamic time gap analysis to determine paragraph breaks:
+     * - Calculates average time spacing between subtitles
+     * - If gap > 1.5x average, treat as new paragraph (scene change)
+     * - Otherwise, join sentences with spaces for flowing text
      */
     public SpannableString buildArticleText() {
         if (subtitleItems == null || subtitleItems.isEmpty()) {
             return new SpannableString("");
         }
 
+        // Step 1: Calculate all time gaps between consecutive subtitles
+        long[] timeGaps = new long[subtitleItems.size() - 1];
+        long totalGap = 0;
+        int validGapCount = 0;
+        
+        for (int i = 0; i < subtitleItems.size() - 1; i++) {
+            SubtitleParser.SubtitleItem current = subtitleItems.get(i);
+            SubtitleParser.SubtitleItem next = subtitleItems.get(i + 1);
+            
+            // Gap = start of next - end of current
+            long gap = next.startTimeMs - current.endTimeMs;
+            timeGaps[i] = gap;
+            
+            // Only count positive gaps (overlapping subtitles are common)
+            if (gap > 0) {
+                totalGap += gap;
+                validGapCount++;
+            }
+        }
+        
+        // Step 2: Calculate dynamic threshold based on average spacing
+        // Use 1.5x average as paragraph break indicator
+        // This adapts to each video's natural rhythm
+        // long avgGap = (validGapCount > 0) ? totalGap / validGapCount : 1000;
+        long avgGap = (validGapCount > 0) ? totalGap / validGapCount : 1000;
+        long paragraphThreshold = Math.max(avgGap * 2 / 2, 100); // At least nnn minimum
+        // paragraphThreshold = 100; // TODO test
+        // fact: some video subtitle, just having many gap=0 ...
+        
         StringBuilder builder = new StringBuilder();
+        // builder.append(paragraphThreshold); // TODO test
         
-        // Threshold for paragraph break (in milliseconds)
-        // If gap between subtitles > 3 seconds, start a new paragraph
-        final long PARAGRAPH_BREAK_THRESHOLD = 3000;
-        
-        // Build text content first to calculate positions
+        // Step 3: Build text content with dynamic paragraph breaks
         for (int i = 0; i < subtitleItems.size(); i++) {
             SubtitleParser.SubtitleItem item = subtitleItems.get(i);
             
@@ -68,16 +97,17 @@ public class SubtitleArticleHelper {
             // Record end position (exclusive)
             spanEnds[i] = builder.length();
             
-            // Determine separator based on time gap
+            // Determine separator based on dynamic time gap analysis
             if (i < subtitleItems.size() - 1) {
-                SubtitleParser.SubtitleItem nextItem = subtitleItems.get(i + 1);
-                long timeGap = nextItem.startTimeMs - item.endTimeMs;
+                long gap = timeGaps[i];
                 
-                if (timeGap > PARAGRAPH_BREAK_THRESHOLD) {
-                    // Long pause -> new paragraph
-                    builder.append("\n\n");
+                // builder.append(gap); // TODO test
+
+                if (gap > paragraphThreshold) {
+                    // Gap significantly larger than average -> likely scene/topic change -> new paragraph
+                    builder.append("\n");
                 } else {
-                    // Short pause -> continue in same paragraph with space
+                    // Normal flow -> continue in same paragraph with space
                     builder.append(" ");
                 }
             }
