@@ -71,6 +71,10 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     // Broadcast receiver for player position updates
     private BroadcastReceiver positionReceiver;
 
+    // Saved instance state keys
+    private static final String STATE_VIEW_MODE = "view_mode";
+    private static final String STATE_AUTO_SYNC = "auto_sync";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,25 +82,52 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
         handler = new Handler(Looper.getMainLooper());
 
-        // Read initial view mode from Intent extras
-        int initialViewMode = getIntent().getIntExtra(EXTRA_INITIAL_VIEW_MODE, VIEW_MODE_LIST);
-        if (initialViewMode == VIEW_MODE_ARTICLE) {
-            currentViewMode = VIEW_MODE_ARTICLE;
+        // Restore saved state or read from Intent extras
+        if (savedInstanceState != null) {
+            // Restore from saved instance state (e.g., after orientation change)
+            currentViewMode = savedInstanceState.getInt(STATE_VIEW_MODE, VIEW_MODE_LIST);
+            isAutoSync = savedInstanceState.getBoolean(STATE_AUTO_SYNC, false);
+            Log.d(TAG, "Restored state: viewMode=" + currentViewMode + ", autoSync=" + isAutoSync);
+        } else {
+            // Read initial view mode from Intent extras (first launch)
+            int initialViewMode = getIntent().getIntExtra(EXTRA_INITIAL_VIEW_MODE, VIEW_MODE_LIST);
+            if (initialViewMode == VIEW_MODE_ARTICLE) {
+                currentViewMode = VIEW_MODE_ARTICLE;
+            }
         }
 
         initViews();
         setupPositionReceiver();
         loadSubtitles();
 
-        // Apply initial view mode after subtitles are loaded
-        if (initialViewMode == VIEW_MODE_ARTICLE) {
+        // Apply view mode after subtitles are loaded
+        if (currentViewMode == VIEW_MODE_ARTICLE) {
             switchToArticleView();
             if (viewToggle != null) {
                 viewToggle.setChecked(true);
             }
+        } else {
+            switchToListView();
+            if (viewToggle != null) {
+                viewToggle.setChecked(false);
+            }
+        }
+
+        // Restore auto-sync state
+        if (syncToggle != null) {
+            syncToggle.setChecked(isAutoSync);
         }
 
         startPositionUpdates();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save current state for orientation changes
+        outState.putInt(STATE_VIEW_MODE, currentViewMode);
+        outState.putBoolean(STATE_AUTO_SYNC, isAutoSync);
+        Log.d(TAG, "Saved state: viewMode=" + currentViewMode + ", autoSync=" + isAutoSync);
     }
 
     private void initViews() {
@@ -190,13 +221,6 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     }
 
     private void switchToArticleView() {
-        // Safety check: ensure Article View components are available
-        if (articleTextView == null || articleScrollView == null) {
-            Log.w(TAG, "switchToArticleView: Article View components not available, falling back to List View");
-            showListView();
-            return;
-        }
-        
         showArticleView();
         
         if (articleHelper == null && subtitleItems != null && !subtitleItems.isEmpty()) {
