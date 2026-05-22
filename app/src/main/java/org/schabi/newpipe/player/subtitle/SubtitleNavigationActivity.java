@@ -74,6 +74,9 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
     // Saved instance state keys
     private static final String STATE_VIEW_MODE = "view_mode";
     private static final String STATE_AUTO_SYNC = "auto_sync";
+    
+    // Flag to prevent toggle listeners during initialization
+    private boolean isInitializing = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +104,8 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         loadSubtitles();
 
         // Apply view mode after subtitles are loaded
+        Log.d(TAG, "Applying initial view mode: " + (currentViewMode == VIEW_MODE_ARTICLE ? "Article" : "List"));
+        
         if (currentViewMode == VIEW_MODE_ARTICLE) {
             switchToArticleView();
             if (viewToggle != null) {
@@ -117,6 +122,10 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
         if (syncToggle != null) {
             syncToggle.setChecked(isAutoSync);
         }
+        
+        // Initialization complete - enable toggle listeners
+        isInitializing = false;
+        Log.d(TAG, "Initialization complete, toggle listeners enabled");
 
         startPositionUpdates();
     }
@@ -182,10 +191,13 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
 
         // View mode toggle (List <-> Article)
         if (viewToggle != null) {
-            viewToggle.setChecked(false); // Default to List View (textOff = "Article")
             viewToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isInitializing) {
+                        return;
+                    }
+                    Log.d(TAG, "View toggle changed: checked=" + isChecked);
                     if (isChecked) {
                         switchToArticleView();
                     } else {
@@ -195,32 +207,42 @@ public class SubtitleNavigationActivity extends AppCompatActivity {
             });
         }
 
-        // Initially hide Article View components
-        showListView();
+        // Note: Do NOT call showListView() here - it will be called from onCreate()
+        // after we determine the correct initial view mode
     }
 
     private void showListView() {
+        Log.d(TAG, "showListView: switching to List View");
         currentViewMode = VIEW_MODE_LIST;
-        recyclerView.setVisibility(View.VISIBLE);
+        
+        if (recyclerView != null) {
+            recyclerView.setVisibility(View.VISIBLE);
+        }
         if (articleScrollView != null) {
             articleScrollView.setVisibility(View.GONE);
         }
     }
 
     private void showArticleView() {
+        Log.d(TAG, "showArticleView: switching to Article View");
         currentViewMode = VIEW_MODE_ARTICLE;
-        recyclerView.setVisibility(View.GONE);
+        
+        if (recyclerView != null) {
+            recyclerView.setVisibility(View.GONE);
+        }
         if (articleScrollView != null) {
             articleScrollView.setVisibility(View.VISIBLE);
         }
     }
 
     private void switchToListView() {
+        Log.d(TAG, "switchToListView: called");
         showListView();
         updateSubtitleHighlight();
     }
 
     private void switchToArticleView() {
+        Log.d(TAG, "switchToArticleView: called");
         showArticleView();
         
         if (articleHelper == null && subtitleItems != null && !subtitleItems.isEmpty()) {
